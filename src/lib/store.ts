@@ -58,6 +58,11 @@ export function addJobWithProcesses(job: Job, newProcesses: Process[]) {
   saveProcesses([...procs, ...newProcesses]);
 }
 
+export function addProcess(newProcess: Process) {
+  const procs = loadProcesses();
+  saveProcesses([...procs, newProcess]);
+}
+
 function saveUserJobs(jobs: Job[]) {
   if (typeof window === 'undefined') return;
   sessionStorage.setItem(USER_JOBS_KEY, JSON.stringify(jobs));

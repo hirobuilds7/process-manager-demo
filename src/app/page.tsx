@@ -259,6 +259,14 @@ function JobGroup({
               </Link>
             );
           })}
+          <div className="px-4 py-2 pl-11 bg-slate-50/60">
+            <Link
+              href={`/job/${job.id}`}
+              className="text-xs text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+            >
+              案件詳細を開く（工程の追加ができます）→
+            </Link>
+          </div>
         </div>
       )}
     </div>
