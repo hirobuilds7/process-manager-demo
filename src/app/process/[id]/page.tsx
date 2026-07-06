@@ -23,9 +23,17 @@ const STATUS_STYLES: Record<ProcessStatus, string> = {
 export default function ProcessDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [processes, setProcesses] = useState<Process[]>([]);
+  const [toast, setToast] = useState<{ message: string; variant: 'blue' | 'green' | 'red' } | null>(null);
+
   useEffect(() => {
     setProcesses(loadProcesses());
   }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const process = processes.find((p) => p.id === id);
 
@@ -53,9 +61,18 @@ export default function ProcessDetail({ params }: { params: Promise<{ id: string
     (p) => p.machineId === process.machineId && p.id !== id && p.scheduledDate === process.scheduledDate
   );
 
-  const handleStart = () => setProcesses(updateProcessStatus(id, 'in_progress'));
-  const handleComplete = () => setProcesses(updateProcessStatus(id, 'completed'));
-  const handleDelay = () => setProcesses(updateProcessStatus(id, 'delayed'));
+  const handleStart = () => {
+    setProcesses(updateProcessStatus(id, 'in_progress'));
+    setToast({ message: '工程を開始しました', variant: 'blue' });
+  };
+  const handleComplete = () => {
+    setProcesses(updateProcessStatus(id, 'completed'));
+    setToast({ message: '工程を完了しました', variant: 'green' });
+  };
+  const handleDelay = () => {
+    setProcesses(updateProcessStatus(id, 'delayed'));
+    setToast({ message: '遅延として報告しました', variant: 'red' });
+  };
 
   return (
     <div className="mx-auto max-w-3xl w-full px-6 py-8">
@@ -241,6 +258,23 @@ export default function ProcessDetail({ params }: { params: Promise<{ id: string
           )}
         </SideCard>
       </div>
+
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg border flex items-center gap-2 text-sm font-medium animate-in slide-in-from-bottom-4 ${
+            toast.variant === 'blue'
+              ? 'bg-blue-600 border-blue-700 text-white'
+              : toast.variant === 'green'
+              ? 'bg-green-600 border-green-700 text-white'
+              : 'bg-red-600 border-red-700 text-white'
+          }`}
+        >
+          {toast.variant === 'blue' && <PlayCircle className="w-4 h-4" />}
+          {toast.variant === 'green' && <CheckCircle className="w-4 h-4" />}
+          {toast.variant === 'red' && <AlertTriangle className="w-4 h-4" />}
+          <span>{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 }
