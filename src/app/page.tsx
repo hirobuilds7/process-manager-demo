@@ -3,8 +3,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { loadProcesses, resetProcesses } from '@/lib/store';
 import { JOBS, CLIENTS, WORKERS, MACHINES, CURRENT_DATE, PROCESSES } from '@/lib/sample-data';
-import type { Process, ProcessStatus } from '@/lib/types';
-import { AlertTriangle, Clock, CheckCircle, PlayCircle, RotateCcw } from 'lucide-react';
+import type { Process, ProcessStatus, Job, Client } from '@/lib/types';
+import {
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  PlayCircle,
+  RotateCcw,
+  ChevronRight,
+  Package,
+} from 'lucide-react';
 
 const STATUS_LABEL: Record<ProcessStatus, string> = {
   pending: '予定',
@@ -20,6 +28,13 @@ const STATUS_STYLES: Record<ProcessStatus, string> = {
   delayed: 'bg-red-50 text-red-700 border-red-200',
 };
 
+const iconFor = (status: ProcessStatus) => {
+  if (status === 'pending') return <Clock className="w-4 h-4" />;
+  if (status === 'in_progress') return <PlayCircle className="w-4 h-4" />;
+  if (status === 'completed') return <CheckCircle className="w-4 h-4" />;
+  return <AlertTriangle className="w-4 h-4" />;
+};
+
 export default function Home() {
   const [processes, setProcesses] = useState<Process[]>([]);
   useEffect(() => {
@@ -29,19 +44,23 @@ export default function Home() {
   const todayProcesses = processes.filter((p) => p.scheduledDate === CURRENT_DATE);
   const jobsMap = new Map(JOBS.map((j) => [j.id, j]));
   const clientsMap = new Map(CLIENTS.map((c) => [c.id, c]));
-  const workersMap = new Map(WORKERS.map((w) => [w.id, w]));
-  const machinesMap = new Map(MACHINES.map((m) => [m.id, m]));
 
   const delayedCount = todayProcesses.filter((p) => p.status === 'delayed').length;
   const inProgressCount = todayProcesses.filter((p) => p.status === 'in_progress').length;
   const completedCount = todayProcesses.filter((p) => p.status === 'completed').length;
 
-  const iconFor = (status: ProcessStatus) => {
-    if (status === 'pending') return <Clock className="w-4 h-4" />;
-    if (status === 'in_progress') return <PlayCircle className="w-4 h-4" />;
-    if (status === 'completed') return <CheckCircle className="w-4 h-4" />;
-    return <AlertTriangle className="w-4 h-4" />;
-  };
+  const jobIdsToday = Array.from(new Set(todayProcesses.map((p) => p.jobId)));
+  const groupedJobs = jobIdsToday
+    .map((jobId) => {
+      const job = jobsMap.get(jobId);
+      if (!job) return null;
+      const client = clientsMap.get(job.clientId);
+      const jobProcesses = todayProcesses
+        .filter((p) => p.jobId === jobId)
+        .sort((a, b) => a.order - b.order);
+      return { job, client, processes: jobProcesses };
+    })
+    .filter((x): x is { job: Job; client: Client | undefined; processes: Process[] } => x !== null);
 
   return (
     <div className="mx-auto max-w-6xl w-full px-6 py-8">
@@ -55,7 +74,7 @@ export default function Home() {
             resetProcesses();
             setProcesses(PROCESSES);
           }}
-          className="text-xs text-slate-500 hover:text-slate-700 border border-slate-300 hover:border-slate-400 rounded px-3 py-1.5 flex items-center gap-1 shrink-0"
+          className="text-xs text-slate-500 hover:text-slate-700 border border-slate-300 hover:border-slate-400 rounded px-3 py-1.5 flex items-center gap-1 shrink-0 transition-colors"
           title="操作した進捗を初期状態に戻す（デモ用）"
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -67,7 +86,7 @@ export default function Home() {
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-2 text-red-800 shadow-sm">
           <AlertTriangle className="w-5 h-5 shrink-0" />
           <p className="text-sm font-medium">
-            遅延 {delayedCount} 件あり — 進捗を確認してください
+            遅延 {delayedCount} 件あり — 該当案件は自動で開いています
           </p>
         </div>
       )}
@@ -78,46 +97,140 @@ export default function Home() {
         <StatCard label="遅延" value={delayedCount} color="red" />
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-200 overflow-hidden shadow-sm">
-        {todayProcesses.length === 0 && (
-          <p className="px-4 py-8 text-center text-sm text-slate-500">今日の工程データはまだ読み込まれていません…</p>
+      <div className="space-y-3">
+        {groupedJobs.length === 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 px-4 py-8 text-center text-sm text-slate-500 shadow-sm">
+            今日の工程データはまだ読み込まれていません…
+          </div>
         )}
-        {todayProcesses.map((p) => {
-          const job = jobsMap.get(p.jobId);
-          const client = job ? clientsMap.get(job.clientId) : null;
-          const worker = workersMap.get(p.workerId);
-          const machine = machinesMap.get(p.machineId);
-
-          return (
-            <Link
-              key={p.id}
-              href={`/process/${p.id}`}
-              className="group flex items-center gap-4 px-4 py-3 hover:bg-blue-50/40 transition-colors"
-            >
-              <div className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-medium shrink-0 ${STATUS_STYLES[p.status]} ${p.status === 'in_progress' ? 'animate-pulse' : ''}`}>
-                {iconFor(p.status)}
-                <span>{STATUS_LABEL[p.status]}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate group-hover:text-blue-700 transition-colors">
-                  {client?.name} / {job?.name}
-                </p>
-                <p className="text-xs text-slate-500 truncate">
-                  {p.name}（工程{p.order}）
-                  {job?.dueDate && (
-                    <span className="ml-2 text-slate-400">· 納期 {job.dueDate.slice(5).replace('-', '/')}</span>
-                  )}
-                </p>
-              </div>
-              <div className="text-right text-xs text-slate-600 shrink-0">
-                <p className="font-medium">{worker?.name}</p>
-                <p className="text-slate-400">{machine?.name}</p>
-              </div>
-            </Link>
-          );
-        })}
+        {groupedJobs.map(({ job, client, processes: jobProcesses }) => (
+          <JobGroup key={job.id} job={job} client={client} processes={jobProcesses} />
+        ))}
       </div>
     </div>
+  );
+}
+
+function JobGroup({
+  job,
+  client,
+  processes,
+}: {
+  job: Job;
+  client: Client | undefined;
+  processes: Process[];
+}) {
+  const delayed = processes.filter((p) => p.status === 'delayed').length;
+  const inProgress = processes.filter((p) => p.status === 'in_progress').length;
+  const completed = processes.filter((p) => p.status === 'completed').length;
+  const pending = processes.filter((p) => p.status === 'pending').length;
+
+  const workersMap = new Map(WORKERS.map((w) => [w.id, w]));
+  const machinesMap = new Map(MACHINES.map((m) => [m.id, m]));
+
+  const [open, setOpen] = useState(delayed > 0 || inProgress > 0);
+
+  const dueDateStr = job.dueDate.slice(5).replace('-', '/');
+
+  return (
+    <div
+      className={`rounded-xl border bg-white shadow-sm overflow-hidden ${
+        delayed > 0 ? 'border-red-200' : 'border-slate-200'
+      }`}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50/70 transition-colors text-left"
+      >
+        <ChevronRight
+          className={`w-4 h-4 text-slate-400 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`}
+        />
+        <Package className="w-4 h-4 text-slate-400 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold truncate">
+            {client?.name} / {job.name}
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            数量 {job.quantity}個 · 納期 {dueDateStr}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0 text-xs">
+          {delayed > 0 && (
+            <Badge color="red" pulse>
+              遅延 {delayed}
+            </Badge>
+          )}
+          {inProgress > 0 && (
+            <Badge color="blue" pulse>
+              進行 {inProgress}
+            </Badge>
+          )}
+          {completed > 0 && <Badge color="green">完了 {completed}</Badge>}
+          {pending > 0 && <Badge color="slate">予定 {pending}</Badge>}
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-slate-200 divide-y divide-slate-100">
+          {processes.map((p) => {
+            const worker = workersMap.get(p.workerId);
+            const machine = machinesMap.get(p.machineId);
+            return (
+              <Link
+                key={p.id}
+                href={`/process/${p.id}`}
+                className="group flex items-center gap-4 px-4 py-2.5 pl-11 hover:bg-blue-50/40 transition-colors"
+              >
+                <div
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-medium shrink-0 ${STATUS_STYLES[p.status]} ${
+                    p.status === 'in_progress' ? 'animate-pulse' : ''
+                  }`}
+                >
+                  {iconFor(p.status)}
+                  <span>{STATUS_LABEL[p.status]}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-slate-800 truncate group-hover:text-blue-700 transition-colors">
+                    工程{p.order}｜{p.name}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">予定 {p.estimatedMinutes}分</p>
+                </div>
+                <div className="text-right text-xs text-slate-600 shrink-0">
+                  <p className="font-medium">{worker?.name}</p>
+                  <p className="text-slate-400">{machine?.name}</p>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Badge({
+  color,
+  pulse,
+  children,
+}: {
+  color: 'blue' | 'green' | 'red' | 'slate';
+  pulse?: boolean;
+  children: React.ReactNode;
+}) {
+  const colorMap = {
+    blue: 'bg-blue-50 text-blue-700 border-blue-200',
+    green: 'bg-green-50 text-green-700 border-green-200',
+    red: 'bg-red-50 text-red-700 border-red-200',
+    slate: 'bg-slate-100 text-slate-600 border-slate-200',
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[11px] font-medium ${colorMap[color]} ${
+        pulse ? 'animate-pulse' : ''
+      }`}
+    >
+      {children}
+    </span>
   );
 }
 
