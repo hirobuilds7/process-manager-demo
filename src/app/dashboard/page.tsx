@@ -1,16 +1,23 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { loadProcesses } from '@/lib/store';
+import { loadProcesses, loadUserJobs, loadUserClients } from '@/lib/store';
 import { JOBS, CLIENTS, WORKERS, MACHINES } from '@/lib/sample-data';
-import type { Process } from '@/lib/types';
+import type { Process, Job, Client } from '@/lib/types';
 import { AlertTriangle, Activity, Users, Factory, Package } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
 export default function Dashboard() {
   const [processes, setProcesses] = useState<Process[]>([]);
+  const [userJobs, setUserJobs] = useState<Job[]>([]);
+  const [userClients, setUserClients] = useState<Client[]>([]);
   useEffect(() => {
     setProcesses(loadProcesses());
+    setUserJobs(loadUserJobs());
+    setUserClients(loadUserClients());
   }, []);
+
+  const allJobs = [...JOBS, ...userJobs];
+  const allClients = [...CLIENTS, ...userClients];
 
   const delayed = processes.filter((p) => p.status === 'delayed');
   const inProgress = processes.filter((p) => p.status === 'in_progress');
@@ -30,8 +37,8 @@ export default function Dashboard() {
     return { name: w.name, 担当工程: assigned };
   });
 
-  const jobsMap = new Map(JOBS.map((j) => [j.id, j]));
-  const clientsMap = new Map(CLIENTS.map((c) => [c.id, c]));
+  const jobsMap = new Map(allJobs.map((j) => [j.id, j]));
+  const clientsMap = new Map(allClients.map((c) => [c.id, c]));
   const workersMap = new Map(WORKERS.map((w) => [w.id, w]));
   const machinesMap = new Map(MACHINES.map((m) => [m.id, m]));
 
@@ -87,7 +94,7 @@ export default function Dashboard() {
           <p className="text-sm font-medium">案件別 進捗（納期順）</p>
         </div>
         <div className="space-y-3">
-          {JOBS.map((job) => {
+          {allJobs.map((job) => {
             const client = clientsMap.get(job.clientId);
             const jobProcesses = processes.filter((p) => p.jobId === job.id);
             const total = jobProcesses.length;

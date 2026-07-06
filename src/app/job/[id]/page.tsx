@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import { loadProcesses, loadUserJobs, addProcess } from '@/lib/store';
+import { loadProcesses, loadUserJobs, loadUserClients, addProcess } from '@/lib/store';
 import { JOBS, CLIENTS, WORKERS, MACHINES, CURRENT_DATE } from '@/lib/sample-data';
-import type { Process, ProcessStatus, Job } from '@/lib/types';
+import type { Process, ProcessStatus, Job, Client } from '@/lib/types';
 import {
   ChevronLeft,
   Plus,
@@ -40,16 +40,19 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
   const { id } = use(params);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [userJobs, setUserJobs] = useState<Job[]>([]);
+  const [userClients, setUserClients] = useState<Client[]>([]);
   const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
     setProcesses(loadProcesses());
     setUserJobs(loadUserJobs());
+    setUserClients(loadUserClients());
   }, []);
 
   const allJobs = [...JOBS, ...userJobs];
+  const allClients = [...CLIENTS, ...userClients];
   const job = allJobs.find((j) => j.id === id);
-  const client = job ? CLIENTS.find((c) => c.id === job.clientId) : null;
+  const client = job ? allClients.find((c) => c.id === job.clientId) : null;
 
   if (!job) {
     return (

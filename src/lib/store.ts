@@ -1,8 +1,9 @@
 import { PROCESSES } from './sample-data';
-import type { Process, ProcessStatus, Job } from './types';
+import type { Process, ProcessStatus, Job, Client } from './types';
 
 const STORAGE_KEY = 'process-manager-demo-state';
 const USER_JOBS_KEY = 'process-manager-demo-userjobs';
+const USER_CLIENTS_KEY = 'process-manager-demo-userclients';
 
 export function loadProcesses(): Process[] {
   if (typeof window === 'undefined') return PROCESSES;
@@ -42,6 +43,24 @@ export function resetProcesses() {
   if (typeof window === 'undefined') return;
   sessionStorage.removeItem(STORAGE_KEY);
   sessionStorage.removeItem(USER_JOBS_KEY);
+  sessionStorage.removeItem(USER_CLIENTS_KEY);
+}
+
+export function loadUserClients(): Client[] {
+  if (typeof window === 'undefined') return [];
+  const saved = sessionStorage.getItem(USER_CLIENTS_KEY);
+  if (!saved) return [];
+  try { return JSON.parse(saved) as Client[]; } catch { return []; }
+}
+
+export function addClient(client: Client) {
+  const clients = loadUserClients();
+  saveUserClients([...clients, client]);
+}
+
+function saveUserClients(clients: Client[]) {
+  if (typeof window === 'undefined') return;
+  sessionStorage.setItem(USER_CLIENTS_KEY, JSON.stringify(clients));
 }
 
 export function loadUserJobs(): Job[] {

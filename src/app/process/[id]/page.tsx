@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import { loadProcesses, updateProcessStatus } from '@/lib/store';
+import { loadProcesses, updateProcessStatus, loadUserJobs, loadUserClients } from '@/lib/store';
 import { JOBS, CLIENTS, WORKERS, MACHINES } from '@/lib/sample-data';
+import type { Job as JobType, Client as ClientType } from '@/lib/types';
 import type { Process, ProcessStatus } from '@/lib/types';
 import { ChevronLeft, PlayCircle, CheckCircle, AlertTriangle, Clock, User, Cpu } from 'lucide-react';
 
@@ -24,9 +25,13 @@ export default function ProcessDetail({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [toast, setToast] = useState<{ message: string; variant: 'blue' | 'green' | 'red' } | null>(null);
+  const [userJobs, setUserJobs] = useState<JobType[]>([]);
+  const [userClients, setUserClients] = useState<ClientType[]>([]);
 
   useEffect(() => {
     setProcesses(loadProcesses());
+    setUserJobs(loadUserJobs());
+    setUserClients(loadUserClients());
   }, []);
 
   useEffect(() => {
@@ -45,8 +50,10 @@ export default function ProcessDetail({ params }: { params: Promise<{ id: string
     );
   }
 
-  const job = JOBS.find((j) => j.id === process.jobId);
-  const client = job ? CLIENTS.find((c) => c.id === job.clientId) : null;
+  const allJobs = [...JOBS, ...userJobs];
+  const allClients = [...CLIENTS, ...userClients];
+  const job = allJobs.find((j) => j.id === process.jobId);
+  const client = job ? allClients.find((c) => c.id === job.clientId) : null;
   const worker = WORKERS.find((w) => w.id === process.workerId);
   const machine = MACHINES.find((m) => m.id === process.machineId);
 
@@ -194,7 +201,7 @@ export default function ProcessDetail({ params }: { params: Promise<{ id: string
           ) : (
             <ul className="space-y-1.5">
               {workerOtherToday.map((p) => {
-                const j = JOBS.find((x) => x.id === p.jobId);
+                const j = allJobs.find((x) => x.id === p.jobId);
                 return (
                   <li key={p.id}>
                     <Link
@@ -229,7 +236,7 @@ export default function ProcessDetail({ params }: { params: Promise<{ id: string
           ) : (
             <ul className="space-y-1.5">
               {machineOtherToday.map((p) => {
-                const j = JOBS.find((x) => x.id === p.jobId);
+                const j = allJobs.find((x) => x.id === p.jobId);
                 return (
                   <li key={p.id}>
                     <Link

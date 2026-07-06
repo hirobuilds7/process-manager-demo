@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { addJobWithProcesses, addProcess, loadUserJobs } from '@/lib/store';
+import { addJobWithProcesses, addProcess, loadUserJobs, loadUserClients, addClient } from '@/lib/store';
 import { CLIENTS, MACHINES, WORKERS, JOBS } from '@/lib/sample-data';
-import type { Job, Process } from '@/lib/types';
+import type { Job, Process, Client } from '@/lib/types';
 import { ChevronLeft, Upload, FileText, CheckCircle, AlertTriangle, Download } from 'lucide-react';
 
 type ParsedRow = {
@@ -43,7 +43,6 @@ function validate(rows: string[][]): ParsedRow[] {
     const [jobName, clientName, quantityStr, dueDate, processName, orderStr, machineName, workerName, estimatedStr, scheduledDate] = row;
     if (!jobName) errors.push('案件名なし');
     if (!clientName) errors.push('客先なし');
-    if (!CLIENTS.find((c) => c.name === clientName)) errors.push(`客先「${clientName}」未登録`);
     const quantity = Number(quantityStr);
     if (isNaN(quantity) || quantity < 1) errors.push('数量が不正');
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) errors.push('納期の日付形式が不正（YYYY-MM-DD）');
@@ -74,7 +73,7 @@ function validate(rows: string[][]): ParsedRow[] {
 
 export default function ImportPage() {
   const [rows, setRows] = useState<ParsedRow[]>([]);
-  const [imported, setImported] = useState<{ jobs: number; procs: number } | null>(null);
+  const [imported, setImported] = useState<{ jobs: number; procs: number; clients: number } | null>(null);
 
   const handleFile = (file: File) => {
     setImported(null);
@@ -104,12 +103,24 @@ export default function ImportPage() {
       { job: Job; processes: Process[]; isNewJob: boolean }
     >();
     const existingJobs = [...JOBS, ...loadUserJobs()];
+    const existingClients = [...CLIENTS, ...loadUserClients()];
+    const newClientsBuffer = new Map<string, Client>();
     let jobsAdded = 0;
     let procsAdded = 0;
+    let clientsAdded = 0;
     const now = Date.now();
 
     validRows.forEach((r, idx) => {
-      const client = CLIENTS.find((c) => c.name === r.clientName)!;
+      let client = existingClients.find((c) => c.name === r.clientName);
+      if (!client) {
+        client = newClientsBuffer.get(r.clientName);
+      }
+      if (!client) {
+        client = { id: `uc${now}_${idx}`, name: r.clientName };
+        newClientsBuffer.set(r.clientName, client);
+        addClient(client);
+        clientsAdded++;
+      }
       const machine = MACHINES.find((m) => m.name === r.machineName)!;
       const worker = WORKERS.find((w) => w.name === r.workerName)!;
       const jobKey = `${r.jobName}__${client.id}__${r.dueDate}`;
@@ -163,7 +174,7 @@ export default function ImportPage() {
       }
     });
 
-    setImported({ jobs: jobsAdded, procs: procsAdded });
+    setImported({ jobs: jobsAdded, procs: procsAdded, clients: clientsAdded });
     setRows([]);
   };
 
@@ -232,7 +243,9 @@ export default function ImportPage() {
         <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 flex items-center gap-2 text-green-800 shadow-sm">
           <CheckCircle className="w-5 h-5 shrink-0" />
           <p className="text-sm font-medium">
-            取り込み完了：新規案件 {imported.jobs}件・工程 {imported.procs}件を追加しました
+            取り込み完了：新規案件 {imported.jobs}件・工程 {imported.procs}件
+            {imported.clients > 0 && <span>・新規客先 {imported.clients}件</span>}
+            を追加しました
           </p>
           <Link
             href="/"

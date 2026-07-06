@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { loadProcesses, resetProcesses, loadUserJobs, addJobWithProcesses } from '@/lib/store';
+import { loadProcesses, resetProcesses, loadUserJobs, addJobWithProcesses, loadUserClients, addClient } from '@/lib/store';
 import { JOBS, CLIENTS, WORKERS, MACHINES, CURRENT_DATE, PROCESSES } from '@/lib/sample-data';
 import type { Process, ProcessStatus, Job, Client } from '@/lib/types';
 import {
@@ -41,17 +41,20 @@ const iconFor = (status: ProcessStatus) => {
 export default function Home() {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [userJobs, setUserJobs] = useState<Job[]>([]);
+  const [userClients, setUserClients] = useState<Client[]>([]);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     setProcesses(loadProcesses());
     setUserJobs(loadUserJobs());
+    setUserClients(loadUserClients());
   }, []);
 
   const todayProcesses = processes.filter((p) => p.scheduledDate === CURRENT_DATE);
   const allJobs = [...JOBS, ...userJobs];
+  const allClients = [...CLIENTS, ...userClients];
   const jobsMap = new Map(allJobs.map((j) => [j.id, j]));
-  const clientsMap = new Map(CLIENTS.map((c) => [c.id, c]));
+  const clientsMap = new Map(allClients.map((c) => [c.id, c]));
 
   const delayedCount = todayProcesses.filter((p) => p.status === 'delayed').length;
   const inProgressCount = todayProcesses.filter((p) => p.status === 'in_progress').length;
@@ -111,11 +114,14 @@ export default function Home() {
 
       {showModal && (
         <NewJobModal
+          existingClients={allClients}
           onClose={() => setShowModal(false)}
-          onSave={(job, procs) => {
+          onSave={(job, procs, newClient) => {
+            if (newClient) addClient(newClient);
             addJobWithProcesses(job, procs);
             setProcesses(loadProcesses());
             setUserJobs(loadUserJobs());
+            setUserClients(loadUserClients());
             setShowModal(false);
           }}
         />
@@ -310,13 +316,16 @@ function Badge({
 }
 
 function NewJobModal({
+  existingClients,
   onClose,
   onSave,
 }: {
+  existingClients: Client[];
   onClose: () => void;
-  onSave: (job: Job, procs: Process[]) => void;
+  onSave: (job: Job, procs: Process[], newClient?: Client) => void;
 }) {
-  const [clientId, setClientId] = useState(CLIENTS[0].id);
+  const [clientSelection, setClientSelection] = useState(existingClients[0]?.id ?? '__new__');
+  const [newClientName, setNewClientName] = useState('');
   const [jobName, setJobName] = useState('');
   const [quantity, setQuantity] = useState(50);
   const [dueDate, setDueDate] = useState('2026-07-15');
@@ -325,11 +334,23 @@ function NewJobModal({
   const [workerId, setWorkerId] = useState(WORKERS[0].id);
   const [estimated, setEstimated] = useState(60);
 
-  const canSave = jobName.trim().length > 0 && processName.trim().length > 0 && quantity > 0 && estimated > 0;
+  const isNewClient = clientSelection === '__new__';
+  const canSave =
+    jobName.trim().length > 0 &&
+    processName.trim().length > 0 &&
+    quantity > 0 &&
+    estimated > 0 &&
+    (isNewClient ? newClientName.trim().length > 0 : true);
 
   const handleSave = () => {
     if (!canSave) return;
     const now = Date.now();
+    let clientId = clientSelection;
+    let newClient: Client | undefined;
+    if (isNewClient) {
+      newClient = { id: `uc${now}`, name: newClientName.trim() };
+      clientId = newClient.id;
+    }
     const jobId = `uj${now}`;
     const procId = `up${now}`;
     const job: Job = {
@@ -354,7 +375,7 @@ function NewJobModal({
       completedAt: null,
       scheduledDate: CURRENT_DATE,
     };
-    onSave(job, [proc]);
+    onSave(job, [proc], newClient);
   };
 
   return (
@@ -380,14 +401,25 @@ function NewJobModal({
           <Section title="案件情報">
             <Field label="客先">
               <select
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
+                value={clientSelection}
+                onChange={(e) => setClientSelection(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {CLIENTS.map((c) => (
+                {existingClients.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
+                <option value="__new__">＋ 新規客先を追加</option>
               </select>
+              {isNewClient && (
+                <input
+                  type="text"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  placeholder="新規客先名（例：東海機械工業）"
+                  autoFocus
+                  className="w-full mt-2 px-3 py-2 border border-blue-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-blue-50/40"
+                />
+              )}
             </Field>
             <Field label="案件名">
               <input
