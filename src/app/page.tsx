@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { loadProcesses, resetProcesses } from '@/lib/store';
+import { loadProcesses, resetProcesses, loadUserJobs, addJobWithProcesses } from '@/lib/store';
 import { JOBS, CLIENTS, WORKERS, MACHINES, CURRENT_DATE, PROCESSES } from '@/lib/sample-data';
 import type { Process, ProcessStatus, Job, Client } from '@/lib/types';
 import {
@@ -12,6 +12,8 @@ import {
   RotateCcw,
   ChevronRight,
   Package,
+  Plus,
+  X,
 } from 'lucide-react';
 
 const STATUS_LABEL: Record<ProcessStatus, string> = {
@@ -37,12 +39,17 @@ const iconFor = (status: ProcessStatus) => {
 
 export default function Home() {
   const [processes, setProcesses] = useState<Process[]>([]);
+  const [userJobs, setUserJobs] = useState<Job[]>([]);
+  const [showModal, setShowModal] = useState(false);
+
   useEffect(() => {
     setProcesses(loadProcesses());
+    setUserJobs(loadUserJobs());
   }, []);
 
   const todayProcesses = processes.filter((p) => p.scheduledDate === CURRENT_DATE);
-  const jobsMap = new Map(JOBS.map((j) => [j.id, j]));
+  const allJobs = [...JOBS, ...userJobs];
+  const jobsMap = new Map(allJobs.map((j) => [j.id, j]));
   const clientsMap = new Map(CLIENTS.map((c) => [c.id, c]));
 
   const delayedCount = todayProcesses.filter((p) => p.status === 'delayed').length;
@@ -70,18 +77,40 @@ export default function Home() {
           <h1 className="text-2xl font-semibold">今日の工程</h1>
           <p className="text-sm text-slate-500 mt-1">{CURRENT_DATE}（月）｜ サンプル製作所</p>
         </div>
-        <button
-          onClick={() => {
-            resetProcesses();
-            setProcesses(PROCESSES);
-          }}
-          className="text-xs text-slate-500 hover:text-slate-700 border border-slate-300 hover:border-slate-400 rounded px-3 py-1.5 flex items-center gap-1 shrink-0 transition-colors"
-          title="操作した進捗を初期状態に戻す（デモ用）"
-        >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>デモをリセット</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setShowModal(true)}
+            className="text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md px-3 py-1.5 flex items-center gap-1 transition-colors shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>新規案件</span>
+          </button>
+          <button
+            onClick={() => {
+              resetProcesses();
+              setProcesses(PROCESSES);
+              setUserJobs([]);
+            }}
+            className="text-xs text-slate-500 hover:text-slate-700 border border-slate-300 hover:border-slate-400 rounded-md px-3 py-1.5 flex items-center gap-1 transition-colors"
+            title="操作した進捗と追加した案件を初期状態に戻す（デモ用）"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>リセット</span>
+          </button>
+        </div>
       </div>
+
+      {showModal && (
+        <NewJobModal
+          onClose={() => setShowModal(false)}
+          onSave={(job, procs) => {
+            addJobWithProcesses(job, procs);
+            setProcesses(loadProcesses());
+            setUserJobs(loadUserJobs());
+            setShowModal(false);
+          }}
+        />
+      )}
 
       {delayedCount > 0 && (
         <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-2 text-red-800 shadow-sm">
@@ -260,6 +289,200 @@ function Badge({
     >
       {children}
     </span>
+  );
+}
+
+function NewJobModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void;
+  onSave: (job: Job, procs: Process[]) => void;
+}) {
+  const [clientId, setClientId] = useState(CLIENTS[0].id);
+  const [jobName, setJobName] = useState('');
+  const [quantity, setQuantity] = useState(50);
+  const [dueDate, setDueDate] = useState('2026-07-15');
+  const [processName, setProcessName] = useState('材料切断');
+  const [machineId, setMachineId] = useState(MACHINES[0].id);
+  const [workerId, setWorkerId] = useState(WORKERS[0].id);
+  const [estimated, setEstimated] = useState(60);
+
+  const canSave = jobName.trim().length > 0 && processName.trim().length > 0 && quantity > 0 && estimated > 0;
+
+  const handleSave = () => {
+    if (!canSave) return;
+    const now = Date.now();
+    const jobId = `uj${now}`;
+    const procId = `up${now}`;
+    const job: Job = {
+      id: jobId,
+      clientId,
+      name: jobName.trim(),
+      quantity,
+      dueDate,
+      status: 'in_progress',
+    };
+    const proc: Process = {
+      id: procId,
+      jobId,
+      name: processName.trim(),
+      order: 1,
+      machineId,
+      workerId,
+      estimatedMinutes: estimated,
+      actualMinutes: null,
+      status: 'pending',
+      startedAt: null,
+      completedAt: null,
+      scheduledDate: CURRENT_DATE,
+    };
+    onSave(job, [proc]);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200">
+          <p className="font-semibold">新規案件を追加</p>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          <Section title="案件情報">
+            <Field label="客先">
+              <select
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {CLIENTS.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="案件名">
+              <input
+                type="text"
+                value={jobName}
+                onChange={(e) => setJobName(e.target.value)}
+                placeholder="例：ベアリングホルダ製作"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="数量">
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  min={1}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </Field>
+              <Field label="納期">
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </Field>
+            </div>
+          </Section>
+
+          <Section title="初期工程（今日開始）">
+            <Field label="工程名">
+              <input
+                type="text"
+                value={processName}
+                onChange={(e) => setProcessName(e.target.value)}
+                placeholder="例：材料切断"
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="機械">
+                <select
+                  value={machineId}
+                  onChange={(e) => setMachineId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {MACHINES.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="作業者">
+                <select
+                  value={workerId}
+                  onChange={(e) => setWorkerId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {WORKERS.map((w) => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <Field label="予定時間（分）">
+              <input
+                type="number"
+                value={estimated}
+                onChange={(e) => setEstimated(Number(e.target.value))}
+                min={1}
+                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </Field>
+          </Section>
+        </div>
+
+        <div className="px-5 py-3 border-t border-slate-200 flex items-center justify-end gap-2 bg-slate-50">
+          <button
+            onClick={onClose}
+            className="px-3 py-2 text-sm text-slate-700 rounded-md hover:bg-slate-100 transition-colors"
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            className="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-md transition-colors shadow-sm"
+          >
+            追加する
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wide">{title}</p>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="text-xs text-slate-600 mb-1 block">{label}</label>
+      {children}
+    </div>
   );
 }
 
