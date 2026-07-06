@@ -132,6 +132,21 @@ function JobGroup({
   const [open, setOpen] = useState(delayed > 0 || inProgress > 0);
 
   const dueDateStr = job.dueDate.slice(5).replace('-', '/');
+  const daysUntilDue = Math.ceil(
+    (new Date(job.dueDate).getTime() - new Date(CURRENT_DATE).getTime()) / 86400000
+  );
+  const dueColor: 'red' | 'orange' | 'slate' =
+    daysUntilDue <= 2 ? 'red' : daysUntilDue <= 5 ? 'orange' : 'slate';
+  const dueLabel =
+    daysUntilDue < 0
+      ? `${-daysUntilDue}日超過`
+      : daysUntilDue === 0
+      ? '本日'
+      : `あと${daysUntilDue}日`;
+
+  const totalCount = processes.length;
+  const progressPercent =
+    totalCount === 0 ? 0 : Math.round((completed / totalCount) * 100);
 
   return (
     <div
@@ -151,9 +166,12 @@ function JobGroup({
           <p className="text-sm font-semibold truncate">
             {client?.name} / {job.name}
           </p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            数量 {job.quantity}個 · 納期 {dueDateStr}
-          </p>
+          <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
+            <span>数量 {job.quantity}個</span>
+            <span className="text-slate-300">·</span>
+            <span>納期 {dueDateStr}</span>
+            <Badge color={dueColor}>{dueLabel}</Badge>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0 text-xs">
           {delayed > 0 && (
@@ -170,6 +188,15 @@ function JobGroup({
           {pending > 0 && <Badge color="slate">予定 {pending}</Badge>}
         </div>
       </button>
+
+      <div className="h-1 bg-slate-100">
+        <div
+          className={`h-1 transition-all duration-500 ${
+            delayed > 0 ? 'bg-red-400' : progressPercent === 100 ? 'bg-green-500' : 'bg-blue-500'
+          }`}
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
 
       {open && (
         <div className="border-t border-slate-200 divide-y divide-slate-100">
@@ -214,7 +241,7 @@ function Badge({
   pulse,
   children,
 }: {
-  color: 'blue' | 'green' | 'red' | 'slate';
+  color: 'blue' | 'green' | 'red' | 'orange' | 'slate';
   pulse?: boolean;
   children: React.ReactNode;
 }) {
@@ -222,6 +249,7 @@ function Badge({
     blue: 'bg-blue-50 text-blue-700 border-blue-200',
     green: 'bg-green-50 text-green-700 border-green-200',
     red: 'bg-red-50 text-red-700 border-red-200',
+    orange: 'bg-orange-50 text-orange-700 border-orange-200',
     slate: 'bg-slate-100 text-slate-600 border-slate-200',
   };
   return (
