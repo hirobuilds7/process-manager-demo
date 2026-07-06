@@ -94,20 +94,23 @@ export default function Home() {
               href={`/process/${p.id}`}
               className="group flex items-center gap-4 px-4 py-3 hover:bg-blue-50/40 transition-colors"
             >
-              <div className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-medium shrink-0 ${STATUS_STYLES[p.status]}`}>
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-medium shrink-0 ${STATUS_STYLES[p.status]} ${p.status === 'in_progress' ? 'animate-pulse' : ''}`}>
                 {iconFor(p.status)}
                 <span>{STATUS_LABEL[p.status]}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">
+                <p className="text-sm font-medium truncate group-hover:text-blue-700 transition-colors">
                   {client?.name} / {job?.name}
                 </p>
                 <p className="text-xs text-slate-500 truncate">
                   {p.name}（工程{p.order}）
+                  {job?.dueDate && (
+                    <span className="ml-2 text-slate-400">· 納期 {job.dueDate.slice(5).replace('-', '/')}</span>
+                  )}
                 </p>
               </div>
               <div className="text-right text-xs text-slate-600 shrink-0">
-                <p>{worker?.name}</p>
+                <p className="font-medium">{worker?.name}</p>
                 <p className="text-slate-400">{machine?.name}</p>
               </div>
             </Link>
