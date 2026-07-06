@@ -64,8 +64,8 @@ export default function Home() {
       </div>
 
       {delayedCount > 0 && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-2 text-red-800">
-          <AlertTriangle className="w-5 h-5" />
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center gap-2 text-red-800 shadow-sm">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
           <p className="text-sm font-medium">
             遅延 {delayedCount} 件あり — 進捗を確認してください
           </p>
@@ -78,7 +78,7 @@ export default function Home() {
         <StatCard label="遅延" value={delayedCount} color="red" />
       </div>
 
-      <div className="bg-white rounded-lg border border-slate-200 divide-y divide-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 divide-y divide-slate-200 overflow-hidden shadow-sm">
         {todayProcesses.length === 0 && (
           <p className="px-4 py-8 text-center text-sm text-slate-500">今日の工程データはまだ読み込まれていません…</p>
         )}
@@ -92,7 +92,7 @@ export default function Home() {
             <Link
               key={p.id}
               href={`/process/${p.id}`}
-              className="flex items-center gap-4 px-4 py-3 hover:bg-slate-50 transition-colors"
+              className="group flex items-center gap-4 px-4 py-3 hover:bg-blue-50/40 transition-colors"
             >
               <div className={`flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-medium shrink-0 ${STATUS_STYLES[p.status]}`}>
                 {iconFor(p.status)}
@@ -120,14 +120,14 @@ export default function Home() {
 
 function StatCard({ label, value, color }: { label: string; value: number; color: 'blue' | 'green' | 'red' }) {
   const colorMap = {
-    blue: 'border-blue-200 bg-blue-50 text-blue-700',
-    green: 'border-green-200 bg-green-50 text-green-700',
-    red: 'border-red-200 bg-red-50 text-red-700',
+    blue: 'border-blue-200 bg-blue-50/70 text-blue-700',
+    green: 'border-green-200 bg-green-50/70 text-green-700',
+    red: 'border-red-200 bg-red-50/70 text-red-700',
   };
   return (
-    <div className={`rounded-lg border px-4 py-3 ${colorMap[color]}`}>
+    <div className={`rounded-xl border px-4 py-3 shadow-sm ${colorMap[color]}`}>
       <p className="text-xs font-medium">{label}</p>
-      <p className="text-2xl font-semibold mt-1">{value}</p>
+      <p className="text-3xl font-semibold mt-1 tabular-nums leading-tight">{value}</p>
     </div>
   );
 }

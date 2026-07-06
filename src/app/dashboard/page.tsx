@@ -49,8 +49,8 @@ export default function Dashboard() {
       </div>
 
       {delayed.length > 0 && (
-        <div className="mb-6 rounded-lg border border-red-200 bg-white overflow-hidden">
-          <div className="bg-red-50 px-4 py-2 flex items-center gap-2 border-b border-red-200">
+        <div className="mb-6 rounded-xl border border-red-200 bg-white overflow-hidden shadow-sm">
+          <div className="bg-red-50 px-4 py-2.5 flex items-center gap-2 border-b border-red-200">
             <AlertTriangle className="w-4 h-4 text-red-700" />
             <p className="text-sm font-medium text-red-800">遅延アラート</p>
           </div>
@@ -131,7 +131,7 @@ function MetricCard({
     red: 'border-red-200 bg-red-50 text-red-700',
   };
   return (
-    <div className={`rounded-lg border px-4 py-3 ${colorMap[color]}`}>
+    <div className={`rounded-xl border px-4 py-3 shadow-sm ${colorMap[color]}`}>
       <div className="flex items-center gap-2 mb-1">
         {icon}
         <p className="text-xs font-medium">{label}</p>
@@ -143,7 +143,7 @@ function MetricCard({
 
 function ChartCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4">
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
       <div className="flex items-center gap-2 mb-3 text-slate-700">
         {icon}
         <p className="text-sm font-medium">{title}</p>
