@@ -185,7 +185,14 @@ export default function Dashboard() {
               <XAxis dataKey="name" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
               <Tooltip />
-              <Bar dataKey="担当工程" fill="#10b981" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="担当工程" radius={[4, 4, 0, 0]}>
+                {workerLoad.map((entry, index) => (
+                  <Cell
+                    key={index}
+                    fill={entry.担当工程 >= 3 ? '#f97316' : entry.担当工程 >= 2 ? '#10b981' : '#94a3b8'}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
