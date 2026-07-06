@@ -5,7 +5,7 @@ const STORAGE_KEY = 'process-manager-demo-state';
 
 export function loadProcesses(): Process[] {
   if (typeof window === 'undefined') return PROCESSES;
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const saved = sessionStorage.getItem(STORAGE_KEY);
   if (saved) {
     try { return JSON.parse(saved) as Process[]; } catch { return PROCESSES; }
   }
@@ -14,7 +14,7 @@ export function loadProcesses(): Process[] {
 
 export function saveProcesses(processes: Process[]) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(processes));
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(processes));
 }
 
 export function updateProcessStatus(id: string, status: ProcessStatus): Process[] {
@@ -39,5 +39,5 @@ export function updateProcessStatus(id: string, status: ProcessStatus): Process[
 
 export function resetProcesses() {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEY);
+  sessionStorage.removeItem(STORAGE_KEY);
 }

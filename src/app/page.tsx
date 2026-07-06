@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { loadProcesses } from '@/lib/store';
-import { JOBS, CLIENTS, WORKERS, MACHINES, CURRENT_DATE } from '@/lib/sample-data';
+import { loadProcesses, resetProcesses } from '@/lib/store';
+import { JOBS, CLIENTS, WORKERS, MACHINES, CURRENT_DATE, PROCESSES } from '@/lib/sample-data';
 import type { Process, ProcessStatus } from '@/lib/types';
-import { AlertTriangle, Clock, CheckCircle, PlayCircle } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, PlayCircle, RotateCcw } from 'lucide-react';
 
 const STATUS_LABEL: Record<ProcessStatus, string> = {
   pending: '予定',
@@ -45,9 +45,22 @@ export default function Home() {
 
   return (
     <div className="mx-auto max-w-6xl w-full px-6 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">今日の工程</h1>
-        <p className="text-sm text-slate-500 mt-1">{CURRENT_DATE}（月）｜ サンプル製作所</p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold">今日の工程</h1>
+          <p className="text-sm text-slate-500 mt-1">{CURRENT_DATE}（月）｜ サンプル製作所</p>
+        </div>
+        <button
+          onClick={() => {
+            resetProcesses();
+            setProcesses(PROCESSES);
+          }}
+          className="text-xs text-slate-500 hover:text-slate-700 border border-slate-300 hover:border-slate-400 rounded px-3 py-1.5 flex items-center gap-1 shrink-0"
+          title="操作した進捗を初期状態に戻す（デモ用）"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span>デモをリセット</span>
+        </button>
       </div>
 
       {delayedCount > 0 && (
