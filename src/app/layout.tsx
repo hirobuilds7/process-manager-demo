@@ -6,6 +6,21 @@ export const metadata: Metadata = {
   title: "工程管理アプリ｜町工場デモ",
   description:
     "町工場のホワイトボード・Excel工程表を置き換える、シンプルな工程管理アプリのデモ。誰がどの機械で今何をやってるか・遅延はどこか・明日の予定・を1画面で。",
+  openGraph: {
+    title: "工程管理アプリ｜町工場デモ",
+    description:
+      "町工場のホワイトボード・Excel工程表を置き換える工程管理アプリのデモ。案件別進捗・機械稼働率・作業者負荷を1画面で可視化。",
+    url: "https://process-manager-demo.vercel.app",
+    siteName: "工程管理アプリ デモ",
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "工程管理アプリ｜町工場デモ",
+    description:
+      "町工場のホワイトボード・Excel工程表を置き換える工程管理アプリのデモ。案件別進捗・機械稼働率・作業者負荷を1画面で可視化。",
+  },
 };
 
 export default function RootLayout({
