@@ -14,6 +14,7 @@ import {
   Package,
   Plus,
   X,
+  Upload,
 } from 'lucide-react';
 
 const STATUS_LABEL: Record<ProcessStatus, string> = {
@@ -85,6 +86,14 @@ export default function Home() {
             <Plus className="w-3.5 h-3.5" />
             <span>新規案件</span>
           </button>
+          <Link
+            href="/import"
+            className="text-xs text-slate-600 border border-slate-300 hover:border-slate-400 hover:text-slate-900 rounded-md px-3 py-1.5 flex items-center gap-1 transition-colors"
+            title="CSVから案件+工程を一括取り込み"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">CSV取り込み</span>
+          </Link>
           <button
             onClick={() => {
               resetProcesses();
