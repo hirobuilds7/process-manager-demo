@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { loadProcesses } from '@/lib/store';
 import { JOBS, CLIENTS, WORKERS, MACHINES } from '@/lib/sample-data';
 import type { Process } from '@/lib/types';
-import { AlertTriangle, Activity, Users, Factory } from 'lucide-react';
+import { AlertTriangle, Activity, Users, Factory, Package } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
 export default function Dashboard() {
@@ -81,6 +81,86 @@ export default function Dashboard() {
         </div>
       )}
 
+      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm mb-4">
+        <div className="flex items-center gap-2 mb-3 text-slate-700">
+          <Package className="w-4 h-4" />
+          <p className="text-sm font-medium">案件別 進捗（納期順）</p>
+        </div>
+        <div className="space-y-3">
+          {JOBS.map((job) => {
+            const client = clientsMap.get(job.clientId);
+            const jobProcesses = processes.filter((p) => p.jobId === job.id);
+            const total = jobProcesses.length;
+            if (total === 0) return null;
+            const completed = jobProcesses.filter((p) => p.status === 'completed').length;
+            const inProg = jobProcesses.filter((p) => p.status === 'in_progress').length;
+            const delayedN = jobProcesses.filter((p) => p.status === 'delayed').length;
+            const pending = jobProcesses.filter((p) => p.status === 'pending').length;
+            return { job, client, total, completed, inProg, delayedN, pending };
+          })
+            .filter((x): x is NonNullable<typeof x> => x !== null)
+            .sort((a, b) => a.job.dueDate.localeCompare(b.job.dueDate))
+            .map(({ job, client, total, completed, inProg, delayedN, pending }) => (
+              <div key={job.id} className="space-y-1.5">
+                <div className="flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <p className="text-slate-800 font-medium truncate">
+                      {client?.name} / {job.name}
+                    </p>
+                    {delayedN > 0 && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-red-200 bg-red-50 text-red-700 shrink-0 animate-pulse">
+                        <AlertTriangle className="w-3 h-3" />
+                        <span>遅延</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500 shrink-0 tabular-nums">
+                    <span>{completed}/{total}</span>
+                    <span className="text-slate-300">·</span>
+                    <span>納期 {job.dueDate.slice(5).replace('-', '/')}</span>
+                  </div>
+                </div>
+                <div className="flex w-full h-3 rounded-full overflow-hidden bg-slate-100">
+                  {completed > 0 && (
+                    <div
+                      className="bg-green-500 transition-all duration-500"
+                      style={{ width: `${(completed / total) * 100}%` }}
+                      title={`完了 ${completed}`}
+                    />
+                  )}
+                  {inProg > 0 && (
+                    <div
+                      className="bg-blue-500 transition-all duration-500"
+                      style={{ width: `${(inProg / total) * 100}%` }}
+                      title={`進行中 ${inProg}`}
+                    />
+                  )}
+                  {delayedN > 0 && (
+                    <div
+                      className="bg-red-500 transition-all duration-500"
+                      style={{ width: `${(delayedN / total) * 100}%` }}
+                      title={`遅延 ${delayedN}`}
+                    />
+                  )}
+                  {pending > 0 && (
+                    <div
+                      className="bg-slate-300 transition-all duration-500"
+                      style={{ width: `${(pending / total) * 100}%` }}
+                      title={`予定 ${pending}`}
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-3 border-t border-slate-100">
+          <LegendDot color="bg-green-500" label="完了" />
+          <LegendDot color="bg-blue-500" label="進行中" />
+          <LegendDot color="bg-red-500" label="遅延" />
+          <LegendDot color="bg-slate-300" label="予定" />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ChartCard icon={<Factory className="w-4 h-4" />} title="機械別 稼働率">
           <ResponsiveContainer width="100%" height={220}>
@@ -138,6 +218,15 @@ function MetricCard({
       </div>
       <p className="text-2xl font-semibold">{value}</p>
     </div>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={`w-2.5 h-2.5 rounded-sm ${color}`} />
+      <span>{label}</span>
+    </span>
   );
 }
 
