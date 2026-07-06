@@ -60,7 +60,8 @@ export default function Home() {
         .sort((a, b) => a.order - b.order);
       return { job, client, processes: jobProcesses };
     })
-    .filter((x): x is { job: Job; client: Client | undefined; processes: Process[] } => x !== null);
+    .filter((x): x is { job: Job; client: Client | undefined; processes: Process[] } => x !== null)
+    .sort((a, b) => a.job.dueDate.localeCompare(b.job.dueDate));
 
   return (
     <div className="mx-auto max-w-6xl w-full px-6 py-8">
